@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice Form</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      padding: 30px 40px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+    table {
+      margin-top: 25px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #007BFF;
+      color: white;
+    }
+    .total-display {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #2c3e50;
+    }
+    button {
+      margin-top: 30px;
+      padding: 12px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .other-input {
+      display: none;
+    }
+  </style>
+  <script>
+    function showOtherInput(selectElem, index) {
+      const inputBox = document.getElementById('otherInput' + index);
+      if (selectElem.value === "Other") {
+        inputBox.style.display = 'inline-block';
+      } else {
+        inputBox.style.display = 'none';
+        inputBox.value = '';
+      }
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      let total = 0;
+      for (let i = 0; i < 10; i++) {
+        const amountInput = document.querySelector(`input[name="amount${i}"]`);
+        if (amountInput && amountInput.value) {
+          const val = parseFloat(amountInput.value);
+          if (!isNaN(val)) total += val;
+        }
+      }
+      document.getElementById("totalDisplay").textContent = `Total: ₹${total.toFixed(2)}`;
+    }
+
+    async function fetchClientSuggestions(query) {
+      const response = await fetch(`/client-suggestions?query=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      const datalist = document.getElementById("clientSuggestions");
+      datalist.innerHTML = "";
+      data.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.name;
+        option.setAttribute("data-address", item.address);
+        datalist.appendChild(option);
+      });
+    }
+
+    function fillClientAddress() {
+      const nameInput = document.getElementById("clientName");
+      const selectedOption = [...document.getElementById("clientSuggestions").options]
+        .find(opt => opt.value === nameInput.value);
+      if (selectedOption) {
+        const address = selectedOption.getAttribute("data-address");
+        document.getElementById("clientAddress").value = address;
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h2>Invoice Entry Form</h2>
+    <form method="POST">
+      <label>Reference No.:
+        <input type="text" name="referenceNo" required>
+      </label>
+
+      <label>Date:
+        <input type="date" name="date" required>
+      </label>
+
+      <label>Client Name:
+        <input type="text" id="clientName" name="clientName" list="clientSuggestions" oninput="fetchClientSuggestions(this.value)" onchange="fillClientAddress()" required>
+        <datalist id="clientSuggestions"></datalist>
+      </label>
+
+      <label>Client Address:
+        <textarea name="clientAddress" id="clientAddress" rows="2" required></textarea>
+      </label>
+
+      <label>Remarks:
+        <textarea name="remarks" rows="3"></textarea>
+      </label>
+
+      <table>
+        <tr><th>Particular</th><th>Amount (₹)</th></tr>
+        <!-- 10 input rows -->
+        <script>
+          for (let i = 0; i < 10; i++) {
+            document.write(`
+              <tr>
+                <td>
+                  <select name="particular${i}" onchange="showOtherInput(this, ${i})">
+                    <option value="">Select</option>
+                    <option value="Service A">Service A</option>
+                    <option value="Service B">Service B</option>
+                    <option value="Consulting">Consulting</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <input class="other-input" type="text" name="other${i}" id="otherInput${i}" placeholder="Specify other">
+                </td>
+                <td>
+                  <input type="number" name="amount${i}" step="0.01" min="0" onchange="calculateTotal()">
+                </td>
+              </tr>
+            `);
+          }
+        </script>
+      </table>
+
+      <div class="total-display" id="totalDisplay">Total: ₹0.00</div>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+</body>
+</html>
